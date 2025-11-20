@@ -309,15 +309,20 @@ async fn check_and_refresh_credential(
     bili_client: &BiliClient,
     config: &Config,
 ) -> Result<()> {
-    if let Some(new_credential) = bili_client
+    match bili_client
         .check_refresh(&config.credential)
         .await
         .context("检查刷新 Credential 失败")?
     {
-        VersionedConfig::get()
-            .update_credential(new_credential, connection)
-            .await
-            .context("更新 Credential 失败")?;
+        None => {
+            info!("Credential 无需刷新");
+        }
+        Some(new_credential) => {
+            VersionedConfig::get()
+                .update_credential(new_credential, connection)
+                .await
+                .context("新 Credential 持久化失败")?;
+        }
     }
     Ok(())
 }
